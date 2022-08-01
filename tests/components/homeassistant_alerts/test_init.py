@@ -7,10 +7,15 @@ from unittest.mock import ANY, patch
 
 import pytest
 
-from homeassistant.components.homeassistant_alerts import DOMAIN, UPDATE_INTERVAL
+from homeassistant.components.homeassistant_alerts import (
+    COMPONENT_LOADED_COOLDOWN,
+    DOMAIN,
+    UPDATE_INTERVAL,
+)
 from homeassistant.components.repairs import DOMAIN as REPAIRS_DOMAIN
+from homeassistant.const import EVENT_COMPONENT_LOADED
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
+from homeassistant.setup import ATTR_COMPONENT, async_setup_component
 from homeassistant.util import dt as dt_util
 
 from tests.common import assert_lists_same, async_fire_time_changed, load_fixture
@@ -97,6 +102,7 @@ async def test_alerts(
     ha_version,
     supervisor_info,
     expected_alerts,
+    freezer,
 ) -> None:
     """Test creating issues based on alerts."""
 
@@ -138,6 +144,11 @@ async def test_alerts(
         return_value=supervisor_info,
     ):
         assert await async_setup_component(hass, DOMAIN, {})
+
+    # Fake component_loaded events and wait for debounce
+    for domain in activated_components:
+        hass.bus.async_fire(EVENT_COMPONENT_LOADED, {ATTR_COMPONENT: domain})
+    freezer.tick(COMPONENT_LOADED_COOLDOWN + 1)
 
     client = await hass_ws_client(hass)
 
@@ -195,6 +206,7 @@ async def test_bad_alerts(
     ha_version,
     fixture,
     expected_alerts,
+    freezer,
 ) -> None:
     """Test creating issues based on alerts."""
     fixture_content = load_fixture(fixture, "homeassistant_alerts")
@@ -219,6 +231,11 @@ async def test_bad_alerts(
         ha_version,
     ):
         assert await async_setup_component(hass, DOMAIN, {})
+
+    # Fake component_loaded events and wait for debounce
+    for domain in activated_components:
+        hass.bus.async_fire(EVENT_COMPONENT_LOADED, {ATTR_COMPONENT: domain})
+    freezer.tick(COMPONENT_LOADED_COOLDOWN + 1)
 
     client = await hass_ws_client(hass)
 
@@ -253,6 +270,7 @@ async def test_no_alerts(
     hass: HomeAssistant,
     hass_ws_client,
     aioclient_mock: AiohttpClientMocker,
+    freezer,
 ) -> None:
     """Test creating issues based on alerts."""
 
@@ -263,6 +281,11 @@ async def test_no_alerts(
     )
 
     assert await async_setup_component(hass, DOMAIN, {})
+
+    # Fake component_loaded events and wait for debounce
+    for domain in ("test",):
+        hass.bus.async_fire(EVENT_COMPONENT_LOADED, {ATTR_COMPONENT: domain})
+    freezer.tick(COMPONENT_LOADED_COOLDOWN + 1)
 
     client = await hass_ws_client(hass)
 
@@ -346,6 +369,7 @@ async def test_alerts_change(
     expected_alerts_1: list[tuple(str, str)],
     fixture_2: str,
     expected_alerts_2: list[tuple(str, str)],
+    freezer,
 ) -> None:
     """Test creating issues based on alerts."""
     fixture_1_content = load_fixture(fixture_1, "homeassistant_alerts")
@@ -378,6 +402,11 @@ async def test_alerts_change(
         ha_version,
     ):
         assert await async_setup_component(hass, DOMAIN, {})
+
+    # Fake component_loaded events and wait for debounce
+    for domain in activated_components:
+        hass.bus.async_fire(EVENT_COMPONENT_LOADED, {ATTR_COMPONENT: domain})
+    freezer.tick(COMPONENT_LOADED_COOLDOWN + 1)
 
     now = dt_util.utcnow()
 
