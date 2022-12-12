@@ -796,11 +796,15 @@ class EntityRegistry:
 
     @callback
     def async_update_entity_options(
-        self, entity_id: str, domain: str, options: dict[str, Any]
+        self, entity_id: str, domain: str, options: Mapping[str, Any] | None
     ) -> RegistryEntry:
         """Update entity options."""
         old = self.entities[entity_id]
-        new_options: EntityOptionsType = {**old.options, domain: options}
+        new_options = {
+            key: value for key, value in old.options.items() if key != domain
+        }
+        if options is not None:
+            new_options[domain] = options
         return self._async_update_entity(entity_id, options=new_options)
 
     async def async_load(self) -> None:
