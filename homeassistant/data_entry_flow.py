@@ -136,6 +136,7 @@ class FlowManager(abc.ABC):
         self.hass = hass
         self._initializing: dict[str, list[asyncio.Future]] = {}
         self._initialize_tasks: dict[str, list[asyncio.Task]] = {}
+        self._preview: set[type[FlowHandler]] = set()
         self._progress: dict[str, FlowHandler] = {}
         self._handler_progress_index: dict[str, set[str]] = {}
 
@@ -371,6 +372,11 @@ class FlowManager(abc.ABC):
             result = _create_abort_data(
                 flow.flow_id, flow.handler, err.reason, err.description_placeholders
             )
+
+        # Setup the flow handler's preview if needed
+        if result.get("preview") is not None and flow.__class__ not in self._preview:
+            self._preview.add(flow.__class__)
+            flow.async_setup_preview(self.hass)
 
         # Mark the step as done.
         # We do this before calling async_finish_flow because config entries will hit a
@@ -614,6 +620,11 @@ class FlowHandler:
     @callback
     def async_remove(self) -> None:
         """Notification that the config flow has been removed."""
+
+    @callback
+    @staticmethod
+    def async_setup_preview(hass: HomeAssistant) -> None:
+        """Set up preview."""
 
 
 @callback
