@@ -310,6 +310,7 @@ async def test_fix_issue(
         "flow_id": ANY,
         "handler": domain,
         "last_step": None,
+        "preview": None,
         "step_id": step,
         "type": "form",
     }

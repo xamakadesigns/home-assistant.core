@@ -227,6 +227,7 @@ async def test_issues_created(mock_history, hass, hass_client, hass_ws_client):
         "flow_id": ANY,
         "handler": "demo",
         "last_step": None,
+        "preview": None,
         "step_id": "confirm",
         "type": "form",
     }

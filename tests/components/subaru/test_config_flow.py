@@ -252,6 +252,7 @@ async def test_pin_form_init(pin_form):
         "step_id": "pin",
         "type": "form",
         "last_step": None,
+        "preview": None,
     }
     assert pin_form == expected
 
