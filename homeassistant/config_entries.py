@@ -1645,6 +1645,17 @@ class ConfigFlow(data_entry_flow.FlowHandler):
 class OptionsFlowManager(data_entry_flow.FlowManager):
     """Flow to set options for a configuration entry."""
 
+    def _async_get_config_entry(self, config_entry_id: str) -> ConfigEntry:
+        """Return config entry or raise if not found."""
+        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+        if entry is None:
+            raise UnknownEntry(config_entry_id)
+
+        if entry.domain not in HANDLERS:
+            raise data_entry_flow.UnknownHandler
+
+        return entry
+
     async def async_create_flow(
         self,
         handler_key: Any,
@@ -1656,13 +1667,7 @@ class OptionsFlowManager(data_entry_flow.FlowManager):
 
         Entry_id and flow.handler is the same thing to map entry with flow.
         """
-        entry = self.hass.config_entries.async_get_entry(handler_key)
-        if entry is None:
-            raise UnknownEntry(handler_key)
-
-        if entry.domain not in HANDLERS:
-            raise data_entry_flow.UnknownHandler
-
+        entry = self._async_get_config_entry(handler_key)
         return HANDLERS[entry.domain].async_get_options_flow(entry)
 
     async def async_finish_flow(
@@ -1685,6 +1690,13 @@ class OptionsFlowManager(data_entry_flow.FlowManager):
 
         result["result"] = True
         return result
+
+    def _async_setup_preview(self, flow: data_entry_flow.FlowHandler) -> None:
+        """Set up preview for an option flow handler."""
+        entry = self._async_get_config_entry(flow.handler)
+        if entry.domain not in self._preview:
+            self._preview.add(entry.domain)
+            flow.async_setup_preview(self.hass)
 
 
 class OptionsFlow(data_entry_flow.FlowHandler):
