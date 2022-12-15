@@ -136,6 +136,7 @@ class FlowManager(abc.ABC):
         self.hass = hass
         self._initializing: dict[str, list[asyncio.Future]] = {}
         self._initialize_tasks: dict[str, list[asyncio.Task]] = {}
+        self._preview: set[type[FlowHandler]] = set()
         self._progress: dict[str, FlowHandler] = {}
         self._handler_progress_index: dict[str, set[str]] = {}
 
@@ -372,6 +373,11 @@ class FlowManager(abc.ABC):
                 flow.flow_id, flow.handler, err.reason, err.description_placeholders
             )
 
+        # Setup the flow handler's preview if needed
+        if result.get("preview") is not None and flow.__class__ not in self._preview:
+            self._preview.add(flow.__class__)
+            flow.async_setup_preview(self.hass)
+
         # Mark the step as done.
         # We do this before calling async_finish_flow because config entries will hit a
         # circular dependency where async_finish_flow sets up new entry, which needs the
@@ -485,11 +491,6 @@ class FlowHandler:
         preview: str | None = None,
     ) -> FlowResult:
         """Return the definition of a form to gather user input."""
-
-        # Setup the flow handler's preview if needed
-        if preview is not None:
-            self.async_setup_preview(self.hass)
-
         return FlowResult(
             type=FlowResultType.FORM,
             flow_id=self.flow_id,
